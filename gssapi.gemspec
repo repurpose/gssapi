@@ -24,7 +24,7 @@ Gem::Specification.new do |gem|
     used for GSSAPI.
   EOF
 
-  gem.files = `git ls-files`.split(/\n/)
+  # gem.files = `git ls-files`.split(/\n/)
   gem.require_path = "lib"
   gem.rdoc_options	= %w(-x test/ -x examples/)
   gem.extra_rdoc_files = %w(README.md COPYING Changelog.md)

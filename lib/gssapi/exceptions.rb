@@ -27,6 +27,8 @@ module GSSAPI
         @s = ''
         oid = GssOID.gss_c_no_oid
         min_stat = min_stat.read_uint32
+puts min_stat
+puts maj_stat
         [[maj_stat, GSS_C_GSS_CODE], [min_stat, GSS_C_MECH_CODE]].each do |m, t|
           message_context.write_int 0
           begin

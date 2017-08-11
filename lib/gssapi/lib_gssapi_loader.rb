@@ -6,6 +6,14 @@ Licensed under the MIT License: http://www.opensource.org/licenses/mit-license.p
 module GSSAPI
   module LibGSSAPI
 
+    @@spnegoMechanismOidDescPtr = FFI::MemoryPointer.from_string("\x2b\x06\x01\x05\x05\x02")
+    @@spnegoMechanismOidArray = [6, @@spnegoMechanismOidDescPtr.address]
+    if FFI::Pointer::SIZE == 8
+      @@spnegoOidPtr = FFI::MemoryPointer.new(:long, 2).write_array_of_long(@@spnegoMechanismOidArray)
+    elsif FFI::Pointer::SIZE == 4
+      @@spnegoOidPtr = FFI::MemoryPointer.new(:int, 2).write_array_of_int(@@spnegoMechanismOidArray)
+    end
+
     class GssOID < FFI::Struct
       layout  :length, :OM_uint32,
         :elements, :pointer # pointer of :void
@@ -37,8 +45,11 @@ module GSSAPI
       # -------------------- MIT Specifics --------------------
       attach_variable :__GSS_C_NT_HOSTBASED_SERVICE, :GSS_C_NT_HOSTBASED_SERVICE, :pointer # type gss_OID
       attach_variable :__GSS_C_NT_EXPORT_NAME, :GSS_C_NT_EXPORT_NAME, :pointer # type gss_OID
+      attach_variable :__GSS_KRB5_NT_PRINCIPAL_NAME, :GSS_KRB5_NT_PRINCIPAL_NAME, :pointer # type gss_OID
       LibGSSAPI.const_set("GSS_C_NT_HOSTBASED_SERVICE", __GSS_C_NT_HOSTBASED_SERVICE)
       LibGSSAPI.const_set("GSS_C_NT_EXPORT_NAME", __GSS_C_NT_EXPORT_NAME)
+      LibGSSAPI.const_set("GSS_KRB5_NT_PRINCIPAL_NAME", __GSS_KRB5_NT_PRINCIPAL_NAME)
+      LibGSSAPI.const_set("GSS_SPNEGO_MECHANISM_OID", @@spnegoOidPtr)
     end
 
     def self.load_heimdal

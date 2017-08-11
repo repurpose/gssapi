@@ -22,7 +22,7 @@ module GSSAPI
     #   If no service_name is given at all the default service of 'host@fqdn' will be used.
     def initialize(host_name, service_name=nil, keytab=nil)
       @host = host_name
-      @service = service_name.nil? ? "host@#{@host}" : (service_name.include?('@') ? service_name : "#{service_name}@#{@host}")
+      @service = service_name
       @int_svc_name = import_name(@service)
       @context = nil # the security context
       @scred = nil # the service credentials.  really only used for the server-side via acquire_credentials
@@ -37,11 +37,7 @@ module GSSAPI
       buff_str = LibGSSAPI::UnManagedGssBufferDesc.new
       buff_str.value = str
       # Choose the appropriate mechanism based on the string passed.
-      if (str =~ /[A-Za-z0-9]+\/[^@]+@.+$/)
-        mech = LibGSSAPI::GssOID.gss_c_no_oid
-      else
-        mech = LibGSSAPI::GSS_C_NT_HOSTBASED_SERVICE
-      end
+      mech = LibGSSAPI::GSS_KRB5_NT_PRINCIPAL_NAME
       name = FFI::MemoryPointer.new :pointer # gss_name_t
       min_stat = FFI::MemoryPointer.new :OM_uint32
 
@@ -64,7 +60,7 @@ module GSSAPI
     def init_context(in_token = nil, opts = {})
       min_stat = FFI::MemoryPointer.new :OM_uint32
       pctx = (@context.nil? ? LibGSSAPI::GssCtxIdT.gss_c_no_context.address_of : @context.address_of)
-      mech = LibGSSAPI::GssOID.gss_c_no_oid
+      mech = LibGSSAPI::GSS_SPNEGO_MECHANISM_OID
       if(opts[:flags])
         flags = opts[:flags]
       else
@@ -190,7 +186,8 @@ module GSSAPI
     #   this method is most usually called on the server only.
     # @return [true] It will return true if everything succeeds and the @scred variable will be set for future methods. If
     #   an error ocurrs an exception will be raised.
-    def acquire_credentials(princ = @int_svc_name, opts = {:usage => :accept})
+    def acquire_credentials(princ = @int_svc_name, opts = {:usage => :initiate})
+	puts 'getting credential'
       min_stat = FFI::MemoryPointer.new :OM_uint32
       scred = FFI::MemoryPointer.new :pointer
 
@@ -205,7 +202,11 @@ module GSSAPI
         raise GssApiError, "Bad option passed to #{self.class.name}#acquire_credentials"
       end
 
-      maj_stat = LibGSSAPI.gss_acquire_cred(min_stat, princ, 0, LibGSSAPI::GSS_C_NO_OID_SET, usage, scred, nil, nil)
+      maj_stat = LibGSSAPI.gss_acquire_cred(min_stat, princ, 8 * 3600, LibGSSAPI::GSS_C_NO_OID_SET, usage, scred, nil, nil)
+puts princ
+puts maj_stat
+puts sprintf("%d", min_stat)
+puts min_stat.read_uint32()
       raise GssApiError.new(maj_stat, min_stat), "gss_acquire_cred did not return GSS_S_COMPLETE" if maj_stat != 0
 
       @scred = LibGSSAPI::GssCredIdT.new(scred.get_pointer(0))
